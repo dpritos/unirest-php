@@ -535,6 +535,31 @@ class Request
 
         return array_combine(array_map('hex2bin', array_keys($values)), $values);
     }
+    
+    /**
+     * Normalizes a query string from the given parameters.
+     *
+     * @param string $query Query string
+     * @return string A normalized query string for the Request
+     */
+    public static function normalizeQueryString($query)
+    {
+        if ('' == $query) {
+            return '';
+        }
+        $parts = array();
+        foreach (explode('&', $query) as $param) {
+            if ('' === $param || '=' === $param[0]) {
+                continue;
+            }
+            $keyValuePair = explode('=', $param, 2);
+            // RFC 3986 with rawurlencode.
+            $parts[] = isset($keyValuePair[1]) ?
+                rawurlencode(urldecode($keyValuePair[0])).'='.rawurlencode(urldecode($keyValuePair[1])) :
+                rawurlencode(urldecode($keyValuePair[0]));
+        }
+        return implode('&', $parts);
+    } 
 
     /**
      * Ensure that a URL is encoded and safe to use with cURL
@@ -552,7 +577,7 @@ class Request
         $query  = (isset($url_parsed['query']) ? $url_parsed['query'] : null);
 
         if ($query !== null) {
-            $query = '?' . http_build_query(self::getArrayFromQuerystring($query));
+            $query = '?' . self::normalizeQueryString($query);
         }
 
         if ($port && $port[0] !== ':') {
